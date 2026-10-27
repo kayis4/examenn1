@@ -1,30 +1,62 @@
 <?php
 
+namespace Tests\Feature;
+
 use App\Models\Categoria;
 use App\Models\Equipo;
 use App\Models\User;
-use Laravel\Sanctum\Sanctum;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\TestCase;
 
-/*
-| TODO [B6] Escriba las tres pruebas. Cada una debe verificar el código
-| de estado Y algo más (estructura, encabezado, mensaje o estado de la base).
-|
-| Quite el ->todo() de cada prueba al implementarla.
-| Ejecute:  php artisan test --filter=EquipoApi
-*/
+class EquipoApiTest extends TestCase
+{
+    use RefreshDatabase;
 
-beforeEach(function () {
-    Sanctum::actingAs(User::factory()->create());
-});
+    public function test_crear_equipo_retorna_201_con_location()
+    {
+        $user = User::factory()->create();
+        $categoria = Categoria::factory()->create();
 
-it('crea un equipo y responde 201 con el encabezado Location', function () {
-    // TODO
-})->todo();
+        $response = $this->actingAs($user)->postJson('/api/equipos', [
+            'codigo' => 'EQ-9999',
+            'nombre' => 'Laptop de Prueba',
+            'categoria_id' => $categoria->id,
+            'estado' => 'disponible',
+            'fecha_adquisicion' => '2025-01-01',
+            'costo_interno' => 500.00,
+        ]);
 
-it('rechaza un equipo con datos inválidos y responde 422 con errores por campo', function () {
-    // TODO
-})->todo();
+        $response->assertStatus(201)
+                 ->assertHeader('Location')
+                 ->assertJsonFragment(['codigo' => 'EQ-9999']);
+    }
 
-it('impide eliminar un equipo prestado y responde 409', function () {
-    // TODO
-})->todo();
+    public function test_validacion_falla_con_422()
+    {
+        $user = User::factory()->create();
+
+        $response = $this->actingAs($user)->postJson('/api/equipos', []);
+
+        $response->assertStatus(422)
+                 ->assertJsonValidationErrors(['codigo', 'nombre', 'categoria_id', 'fecha_adquisicion', 'costo_interno']);
+    }
+
+    public function test_no_se_puede_eliminar_equipo_prestado_409()
+    {
+        $user = User::factory()->create();
+        $categoria = Categoria::factory()->create();
+        $equipo = Equipo::create([
+            'codigo' => 'EQ-1000',
+            'nombre' => 'Proyector',
+            'categoria_id' => $categoria->id,
+            'estado' => 'prestado',
+            'fecha_adquisicion' => '2025-01-01',
+            'costo_interno' => 100.00,
+        ]);
+
+        $response = $this->actingAs($user)->deleteJson("/api/equipos/{$equipo->id}");
+
+        $response->assertStatus(409)
+                 ->assertJsonFragment(['codigo' => 'REGLA_NEGOCIO']);
+    }
+}
