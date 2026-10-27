@@ -9,29 +9,24 @@ use App\Models\Equipo;
 use App\Services\EquipoService;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 
 class EquipoController extends Controller
 {
-    protected $equipoService;
-
-    public function __construct(EquipoService $equipoService)
+    public function __construct(private readonly EquipoService $equipoService)
     {
-        $this->equipoService = $equipoService;
     }
 
-    public function index(Request $request)
+    public function index(Request $request): AnonymousResourceCollection
     {
-        $q = $request->query('q');
-        $estado = $request->query('estado');
-        // Tope máximo de 50 en per_page según los requerimientos
-        $porPagina = min((int) $request->query('por_pagina', 10), 50);
-
-        $equipos = $this->equipoService->listar($q, $estado, $porPagina);
-
-        return EquipoResource::collection($equipos);
+        $porPagina = min(max((int) $request->query('per_page', $request->query('por_pagina', 10)), 1), 50);
+        return EquipoResource::collection($this->equipoService->listar(
+            $request->query('q'), $request->query('estado'), $porPagina
+        ));
     }
 
-    public function store(GuardarEquipoRequest $request)
+    public function store(GuardarEquipoRequest $request): JsonResponse
     {
         $equipo = $this->equipoService->crear($request->validated());
 
@@ -41,26 +36,26 @@ class EquipoController extends Controller
             ->header('Location', route('equipos.show', $equipo));
     }
 
-    public function show(Equipo $equipo)
+    public function show(Equipo $equipo): EquipoResource
     {
         return new EquipoResource($equipo->load('categoria'));
     }
 
-    public function update(GuardarEquipoRequest $request, Equipo $equipo)
+    public function update(GuardarEquipoRequest $request, Equipo $equipo): EquipoResource
     {
         $equipoActualizado = $this->equipoService->actualizar($equipo, $request->validated());
 
         return new EquipoResource($equipoActualizado);
     }
 
-    public function destroy(Equipo $equipo)
+    public function destroy(Equipo $equipo): Response
     {
         $this->equipoService->eliminar($equipo);
 
         return response()->json(null, Response::HTTP_NO_CONTENT);
     }
 
-    public function prestar(Equipo $equipo)
+    public function prestar(Equipo $equipo): EquipoResource
     {
         $equipoPrestado = $this->equipoService->prestar($equipo);
 

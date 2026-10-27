@@ -64,12 +64,12 @@ class EquipoService
     public function prestar(Equipo $equipo): Equipo
     {
         // R2. Solo se puede prestar un equipo disponible.
-        if ($equipo->estado === 'mantenimiento') {
-            throw new ReglaNegocioException("No se puede prestar un equipo en mantenimiento.");
-        }
+        if ($equipo->estado !== 'disponible') {
+            if ($equipo->estado === 'prestado') {
+                throw new ReglaNegocioException("El equipo ya se encuentra prestado.");
+            }
 
-        if ($equipo->estado === 'prestado') {
-            throw new ReglaNegocioException("El equipo ya se encuentra prestado.");
+            throw new ReglaNegocioException("No se puede prestar un equipo en mantenimiento.");
         }
 
         $equipo->estado = 'prestado';

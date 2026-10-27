@@ -43,6 +43,7 @@ class GuardarEquipoRequest extends FormRequest
             'codigo.unique' => 'Este código de equipo ya está registrado.',
 
             'nombre.required' => 'El nombre del equipo es obligatorio.',
+            'nombre.string' => 'El nombre debe ser una cadena de texto.',
             'nombre.min' => 'El nombre debe tener al menos 3 caracteres.',
             'nombre.max' => 'El nombre no puede tener más de 120 caracteres.',
 
